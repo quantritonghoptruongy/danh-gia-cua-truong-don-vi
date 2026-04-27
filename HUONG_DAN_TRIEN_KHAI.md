@@ -29,11 +29,34 @@ cp .env.example .env
 ```
 
 ### 1.2 Cài đặt trên StackBlitz
+Clear Cache (thử trước):
+Nhìn góc dưới trái màn hình StackBlitz, bạn thấy dòng:
+"Something broken? Clear cache or file a bug!"
+→ Click vào "Clear cache" → StackBlitz tự reload lại
+
+# 1. Kiểm tra remote đã được kết nối chưa
+git remote -v
+
+# 2. Nếu chưa có remote, thêm vào
+git remote add origin https://github.com/quantritonghoptruongy/danh-gia-cua-truong-don-vi.git
+
+# 3. Đảm bảo .env không bị commit
+cat .gitignore   # kiểm tra có dòng ".env" không
 
 1. Truy cập https://stackblitz.com → **Open from GitHub** hoặc **Upload files**
 2. Upload toàn bộ thư mục project (trừ `node_modules`)
 3. StackBlitz tự động chạy `npm install`
 4. Tạo file `.env` trong StackBlitz (click icon + → New file → `.env`)
+
+Tạo .gitignore theo cách StackBlitz hỗ trợ
+echo "node_modules/" > .gitignore && echo "dist/" >> .gitignore && echo ".env" >> .gitignore && echo ".env.local" >> .gitignore && echo ".DS_Store" >> .gitignore && echo "*.log" >> .gitignore
+git add .gitignore
+git commit -m "chore: add .gitignore"
+git push origin 
+// Cập nhật App.tsx lên GitHub
+git add src/App.tsx
+git commit -m "feat: cập nhật phân quyền theo email đơn vị"
+git push origin main
 
 ---
 
