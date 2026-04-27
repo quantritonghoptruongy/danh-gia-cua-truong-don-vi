@@ -357,7 +357,7 @@ const LoginScreen = ({ onLogin, isLoggingIn }: LoginScreenProps) => {
 
         {/* ← TÊN APP: Trường Y */}
         <h1 className="text-2xl font-black text-slate-800 tracking-tighter">{APP_NAME}</h1>
-        <p className="text-emerald-700 font-bold text-sm mt-1">Hệ thống Đánh giá Hoạt động</p>
+        <p className="text-emerald-700 font-bold text-sm mt-1">Ứng dụng hỗ trợ Trưởng đơn vị đánh giá</p>
         <p className="text-slate-400 text-xs mt-2 mb-6">
           Đăng nhập để thực hiện đánh giá.<br />
           Tài khoản sẽ được ghi vết tự động khi lưu kết quả.
