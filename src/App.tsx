@@ -877,20 +877,20 @@ const MainApp = ({ user, accessToken, unitRecord, onLogout }: MainAppProps) => {
 const AuthWrapper = () => {
   const [user,        setUser]        = useState<GoogleUser | null>(null);
   const [accessToken, setAccessToken] = useState('');
-  const [unitRecord,  setUnitRecord]  = useState<UnitRecord | null>(null);
+  const [unitRecord,  setUnitRecord]  = useState<UnitRecord | null>(null); 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [authError,   setAuthError]   = useState('');
+  //const [authError,   setAuthError]   = useState('');  Xoá dòng này để Vercel tránh báo lỗi src/App.tsx(882,10): error TS6133: 'authError' is declared but its value is never read.
 
   const handleLogout = useCallback(() => {
     setUser(null);
     setAccessToken('');
     setUnitRecord(null);
-    setAuthError('');
+    //setAuthError(''); Xoá dòng này để Vercel tránh báo lỗi src/App.tsx(882,10): error TS6133: 'authError' is declared but its value is never read.
   }, []);
 
   const login = useGoogleLogin({
     onSuccess: async tokenResponse => {
-      setAuthError('');
+      //setAuthError('');
       try {
         // 1. Lấy thông tin tài khoản
         const userInfo = await apiGetUserInfo(tokenResponse.access_token);
@@ -903,7 +903,7 @@ const AuthWrapper = () => {
         setUnitRecord(unit); // null = không có quyền → AccessDenied
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setAuthError(msg);
+        //setAuthError(msg); Xoá dòng này để Vercel tránh báo lỗi src/App.tsx(882,10): error TS6133: 'authError' is declared but its value is never read.
         alert(`Lỗi xác thực: ${msg}`);
       } finally {
         setIsLoggingIn(false);
