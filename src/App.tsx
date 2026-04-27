@@ -5,11 +5,11 @@ import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 // CẤU HÌNH — chỉ cần 2 biến env
 // VITE_GOOGLE_CLIENT_ID : OAuth Client ID
 // VITE_SPREADSHEET_ID   : ID của Google Sheet chứa tất cả đơn vị
-// VITE_DIRECTORY_SHEET  : Tên tab danh mục trưởng đơn vị (mặc định "Danh mục Trưởng ĐV")
+// VITE_DIRECTORY_SHEET  : Tên tab danh mục trưởng đơn vị (mặc định "DanhMucTruongDV")
 // ─────────────────────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID  = import.meta.env.VITE_GOOGLE_CLIENT_ID  as string;
 const SPREADSHEET_ID    = import.meta.env.VITE_SPREADSHEET_ID    as string;
-const DIRECTORY_SHEET   = (import.meta.env.VITE_DIRECTORY_SHEET  as string) || 'Danh mục Trưởng ĐV';
+const DIRECTORY_SHEET   = (import.meta.env.VITE_DIRECTORY_SHEET  as string) || 'DanhMucTruongDV';
 const SHEETS_BASE       = 'https://sheets.googleapis.com/v4/spreadsheets';
 const APP_NAME          = 'Trường Y';   // ← Tên hiển thị toàn app
 
@@ -22,7 +22,7 @@ interface GoogleUser {
   picture: string;
 }
 
-/** Thông tin trưởng đơn vị đọc từ sheet "Danh mục Trưởng ĐV" */
+/** Thông tin trưởng đơn vị đọc từ sheet "DanhMucTruongDV" */
 interface UnitRecord {
   managerName: string;   // Cột B: Họ tên
   unitName:    string;   // Cột C: Đơn vị → cũng là tên tab sheet
@@ -68,7 +68,7 @@ async function sheetsGet(accessToken: string, range: string): Promise<string[][]
 }
 
 /**
- * Đọc sheet "Danh mục Trưởng ĐV" → trả về danh sách UnitRecord.
+ * Đọc sheet "DanhMucTruongDV" → trả về danh sách UnitRecord.
  * Cấu trúc sheet:
  *   Dòng 1-2 : header (bỏ qua)
  *   Dòng 3+  : A=STT, B=Họ tên, C=Đơn vị, D=Email, E=Ghi chú
@@ -369,7 +369,7 @@ const LoginScreen = ({ onLogin, isLoggingIn }: LoginScreenProps) => {
             <pre className="text-xs bg-amber-100 rounded p-2 mt-2 whitespace-pre-wrap">
 {`VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 VITE_SPREADSHEET_ID=1BxiM...your_sheet_id
-VITE_DIRECTORY_SHEET=Danh mục Trưởng ĐV`}
+VITE_DIRECTORY_SHEET=DanhMucTruongDV`}
             </pre>
           </div>
         ) : (
@@ -895,7 +895,7 @@ const AuthWrapper = () => {
         // 1. Lấy thông tin tài khoản
         const userInfo = await apiGetUserInfo(tokenResponse.access_token);
 
-        // 2. Tra cứu đơn vị theo email trong sheet "Danh mục Trưởng ĐV"
+        // 2. Tra cứu đơn vị theo email trong sheet "DanhMucTruongDV"
         const unit = await apiResolveUnit(tokenResponse.access_token, userInfo.email);
 
         setAccessToken(tokenResponse.access_token);
