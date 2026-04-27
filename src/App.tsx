@@ -601,8 +601,8 @@ const MainApp = ({ user, accessToken, unitRecord, onLogout }: MainAppProps) => {
             )}
             <div>
               {/* ← Tên đơn vị động từ directory */}
-              <h1 className="text-base font-black italic tracking-tighter leading-none">{unitSheetName}</h1>
-              <p className="text-[10px] font-bold opacity-70 mt-0.5 truncate max-w-[200px]">
+              <h1 className="text-sm font-black italic tracking-tighter leading-tight">{unitSheetName}</h1>
+              <p className="text-[10px] font-bold opacity-70 leading-tight truncate max-w-[200px]">
                 {activeTab === 'current'
                   ? `Tháng hiện tại: ${currentPeriod}`
                   : `Lịch sử: ${historyPeriod}`}
