@@ -351,9 +351,13 @@ const LoginScreen = ({ onLogin, isLoggingIn }: LoginScreenProps) => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 to-slate-100">
       <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center max-w-sm w-full text-center border-t-4 border-emerald-600">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-          <span className="text-3xl">🏥</span>
-        </div>
+      <div className="w-20 h-20 rounded-full overflow-hidden mb-4 flex items-center justify-center bg-white shadow-sm border border-slate-100">
+        <img 
+            src="/Truong Y final - VIE (Round version NoBG)-06.png" 
+            alt="Logo Trường Y" 
+            className="w-full h-full object-contain p-1" 
+        />
+      </div>
 
         {/* ← TÊN APP: Trường Y */}
         <h1 className="text-2xl font-black text-slate-800 tracking-tighter">{APP_NAME}</h1>
