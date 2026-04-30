@@ -94,14 +94,19 @@ async function apiGetDirectory(accessToken: string): Promise<UnitRecord[]> {
 }
 
 /**
- * Tìm đơn vị của user dựa trên email đã đăng nhập.
- * Trả về UnitRecord hoặc null nếu không tìm thấy.
- * So sánh không phân biệt chữ hoa/thường.
+ * Tìm TẤT CẢ đơn vị của user dựa trên email đã đăng nhập.
+ * Hỗ trợ trưởng đơn vị kiêm nhiệm nhiều đơn vị.
+ *
+ * Kết quả trả về:
+ *   - Mảng rỗng []      → email không có quyền → AccessDenied
+ *   - Mảng 1 phần tử    → vào thẳng trang chấm
+ *   - Mảng 2+ phần tử   → hiện màn hình chọn đơn vị (UnitSelector)
  */
-async function apiResolveUnit(accessToken: string, email: string): Promise<UnitRecord | null> {
+async function apiResolveUnits(accessToken: string, email: string): Promise<UnitRecord[]> {
   const directory = await apiGetDirectory(accessToken);
   const lowerEmail = email.trim().toLowerCase();
-  return directory.find(r => r.email === lowerEmail) ?? null;
+  // filter() lấy TẤT CẢ dòng khớp email, thay vì find() chỉ lấy dòng đầu tiên
+  return directory.filter(r => r.email === lowerEmail);
 }
 
 /**
@@ -433,12 +438,13 @@ const AccessDenied = ({ email, onLogout }: AccessDeniedProps) => (
 // COMPONENT: ỨNG DỤNG ĐÁNH GIÁ CHÍNH
 // ─────────────────────────────────────────────────────────────────────────────
 interface MainAppProps {
-  user:        GoogleUser;
-  accessToken: string;
-  unitRecord:  UnitRecord;   // ← thông tin đơn vị của user
-  onLogout:    () => void;
+  user:          GoogleUser;
+  accessToken:   string;
+  unitRecord:    UnitRecord;    // thông tin đơn vị đang được chọn
+  onLogout:      () => void;
+  onSwitchUnit?: () => void;    // undefined = 1 đơn vị → không hiện nút đổi đơn vị
 }
-const MainApp = ({ user, accessToken, unitRecord, onLogout }: MainAppProps) => {
+const MainApp = ({ user, accessToken, unitRecord, onLogout, onSwitchUnit }: MainAppProps) => {
   const [employees,     setEmployees]     = useState<Employee[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [loadError,     setLoadError]     = useState('');
@@ -614,10 +620,22 @@ const MainApp = ({ user, accessToken, unitRecord, onLogout }: MainAppProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Nút tải lại dữ liệu từ Google Sheets */}
             <button onClick={loadData} title="Tải lại"
               className="p-2 bg-emerald-600 rounded-xl active:scale-95 transition-transform">
               <Icon name="refresh" size={18} />
             </button>
+
+            {/* Nút đổi đơn vị — chỉ hiện khi kiêm nhiệm 2+ đơn vị */}
+            {onSwitchUnit && (
+              <button onClick={onSwitchUnit} title="Đổi đơn vị"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl active:scale-95 transition-all text-xs font-bold">
+                <Icon name="users" size={14} />
+                <span className="hidden sm:inline">Đổi đơn vị</span>
+              </button>
+            )}
+
+            {/* Nút đăng xuất */}
             <button onClick={onLogout} title="Đăng xuất"
               className="p-2 bg-emerald-600 rounded-xl active:scale-95 transition-transform">
               <Icon name="logout" size={18} />
@@ -875,39 +893,126 @@ const MainApp = ({ user, accessToken, unitRecord, onLogout }: MainAppProps) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT: AUTH WRAPPER
-// Luồng: Login → OAuth → apiGetUserInfo → apiResolveUnit → MainApp / AccessDenied
+// COMPONENT: UNIT SELECTOR
+// Hiển thị khi trưởng đơn vị kiêm nhiệm từ 2 đơn vị trở lên.
+// User chọn 1 đơn vị → vào MainApp của đơn vị đó.
+// ─────────────────────────────────────────────────────────────────────────────
+interface UnitSelectorProps {
+  user:     GoogleUser;
+  units:    UnitRecord[];               // danh sách tất cả đơn vị của user
+  onSelect: (unit: UnitRecord) => void; // callback khi chọn 1 đơn vị
+  onLogout: () => void;
+}
+const UnitSelector = ({ user, units, onSelect, onLogout }: UnitSelectorProps) => (
+  <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 to-slate-100">
+    <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center max-w-sm w-full border-t-4 border-emerald-600">
+
+      {/* Thông tin tài khoản đang đăng nhập */}
+      <div className="flex items-center gap-3 mb-2 self-start w-full">
+        {user.picture && (
+          <img src={user.picture} alt={user.name}
+            className="w-11 h-11 rounded-full border-2 border-emerald-400 shrink-0" />
+        )}
+        <div>
+          <p className="font-black text-slate-800 text-sm leading-tight">{user.name}</p>
+          <p className="text-[11px] text-slate-400">{user.email}</p>
+        </div>
+      </div>
+
+      <div className="w-full border-t border-slate-100 my-4" />
+
+      {/* Tiêu đề hướng dẫn chọn đơn vị */}
+      <div className="text-center mb-5">
+        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Icon name="users" size={22} className="text-emerald-700" />
+        </div>
+        <h2 className="font-black text-slate-800 text-lg tracking-tight">Chọn đơn vị</h2>
+        <p className="text-slate-400 text-xs mt-1">
+          Bạn đang quản lý <span className="font-bold text-emerald-700">{units.length} đơn vị</span>.
+          <br />Chọn đơn vị để bắt đầu chấm điểm.
+        </p>
+      </div>
+
+      {/* Danh sách đơn vị — mỗi card là 1 đơn vị có thể click */}
+      <div className="w-full space-y-3">
+        {units.map((unit, idx) => (
+          <button key={idx} onClick={() => onSelect(unit)}
+            className="w-full flex items-center gap-4 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-left p-4 rounded-2xl transition-all active:scale-[0.98] group">
+            <div className="w-10 h-10 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center shrink-0 transition-colors">
+              <span className="text-lg">🏥</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              {/* Tên đơn vị = tên tab sheet trong Google Sheets */}
+              <p className="font-bold text-slate-800 text-sm leading-tight truncate">{unit.unitName}</p>
+              {/* Ghi chú phụ (vd: "Kiêm nhiệm") — chỉ hiện nếu có */}
+              {unit.note && (
+                <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">{unit.note}</p>
+              )}
+            </div>
+            <Icon name="chevronRight" size={18}
+              className="text-slate-300 group-hover:text-emerald-500 shrink-0 transition-colors" />
+          </button>
+        ))}
+      </div>
+
+      {/* Nút đăng xuất */}
+      <button onClick={onLogout}
+        className="mt-6 text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1.5 transition-colors">
+        <Icon name="logout" size={14} />
+        Đăng xuất
+      </button>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT: AUTH WRAPPER — PHIÊN BẢN MỚI (hỗ trợ kiêm nhiệm)
+// Luồng:
 // ─────────────────────────────────────────────────────────────────────────────
 const AuthWrapper = () => {
-  const [user,        setUser]        = useState<GoogleUser | null>(null);
-  const [accessToken, setAccessToken] = useState('');
-  const [unitRecord,  setUnitRecord]  = useState<UnitRecord | null>(null); 
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  //const [authError,   setAuthError]   = useState('');  Xoá dòng này để Vercel tránh báo lỗi src/App.tsx(882,10): error TS6133: 'authError' is declared but its value is never read.
+  // Thông tin tài khoản Google sau khi OAuth thành công
+  const [user,         setUser]         = useState<GoogleUser | null>(null);
+  // Access token dùng để gọi Sheets API
+  const [accessToken,  setAccessToken]  = useState('');
+  // Tất cả đơn vị của user (hỗ trợ kiêm nhiệm)
+  const [units,        setUnits]        = useState<UnitRecord[]>([]);
+  // Đơn vị đang được chọn để chấm điểm
+  const [selectedUnit, setSelectedUnit] = useState<UnitRecord | null>(null);
+  const [isLoggingIn,  setIsLoggingIn]  = useState(false);
 
+  // Đăng xuất: reset toàn bộ state về trạng thái ban đầu
   const handleLogout = useCallback(() => {
     setUser(null);
     setAccessToken('');
-    setUnitRecord(null);
-    //setAuthError(''); Xoá dòng này để Vercel tránh báo lỗi src/App.tsx(882,10): error TS6133: 'authError' is declared but its value is never read.
+    setUnits([]);
+    setSelectedUnit(null);
+  }, []);
+
+  // Đổi đơn vị: giữ phiên đăng nhập, quay lại UnitSelector để chọn lại
+  const handleSwitchUnit = useCallback(() => {
+    setSelectedUnit(null);
   }, []);
 
   const login = useGoogleLogin({
     onSuccess: async tokenResponse => {
-      //setAuthError('');
       try {
-        // 1. Lấy thông tin tài khoản
+        // Bước 1: Lấy thông tin tài khoản Google (tên, email, avatar)
         const userInfo = await apiGetUserInfo(tokenResponse.access_token);
 
-        // 2. Tra cứu đơn vị theo email trong sheet "DanhMucTruongDV"
-        const unit = await apiResolveUnit(tokenResponse.access_token, userInfo.email);
+        // Bước 2: Tra cứu TẤT CẢ đơn vị khớp email trong sheet DanhMucTruongDV
+        const foundUnits = await apiResolveUnits(tokenResponse.access_token, userInfo.email);
 
         setAccessToken(tokenResponse.access_token);
         setUser(userInfo);
-        setUnitRecord(unit); // null = không có quyền → AccessDenied
+        setUnits(foundUnits);
+
+        // Bước 3: Nếu chỉ 1 đơn vị → chọn tự động, bỏ qua UnitSelector
+        if (foundUnits.length === 1) {
+          setSelectedUnit(foundUnits[0]);
+        }
+        // 0 đơn vị → AccessDenied | 2+ đơn vị → UnitSelector (xử lý ở return)
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        //setAuthError(msg); Xoá dòng này để Vercel tránh báo lỗi src/App.tsx(882,10): error TS6133: 'authError' is declared but its value is never read.
         alert(`Lỗi xác thực: ${msg}`);
       } finally {
         setIsLoggingIn(false);
@@ -917,12 +1022,12 @@ const AuthWrapper = () => {
       alert('Đăng nhập thất bại!\n\nKiểm tra:\n1. Client ID đúng chưa?\n2. Domain đã thêm vào Authorized JavaScript Origins chưa?');
       setIsLoggingIn(false);
     },
-    // Scope bắt buộc: đọc/ghi Google Sheets
+    // Scope bắt buộc để đọc/ghi Google Sheets
     scope: 'openid email profile https://www.googleapis.com/auth/spreadsheets',
     flow: 'implicit',
   });
 
-  // Chưa đăng nhập
+  // ── Trường hợp 1: Chưa đăng nhập ──────────────────────────────────────────
   if (!user || !accessToken) {
     return (
       <LoginScreen
@@ -932,18 +1037,32 @@ const AuthWrapper = () => {
     );
   }
 
-  // Đã đăng nhập nhưng email không có trong danh mục
-  if (!unitRecord) {
+  // ── Trường hợp 2: Email không có trong DanhMucTruongDV ────────────────────
+  if (units.length === 0) {
     return <AccessDenied email={user.email} onLogout={handleLogout} />;
   }
 
-  // Đăng nhập thành công — load đúng sheet đơn vị
+  // ── Trường hợp 3: Kiêm nhiệm 2+ đơn vị, chưa chọn đơn vị ────────────────
+  if (!selectedUnit) {
+    return (
+      <UnitSelector
+        user={user}
+        units={units}
+        onSelect={unit => setSelectedUnit(unit)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // ── Trường hợp 4: Đã chọn đơn vị → vào trang chấm ───────────────────────
   return (
     <MainApp
       user={user}
       accessToken={accessToken}
-      unitRecord={unitRecord}
+      unitRecord={selectedUnit}
       onLogout={handleLogout}
+      // Chỉ truyền onSwitchUnit khi kiêm nhiệm → header hiện nút "Đổi đơn vị"
+      onSwitchUnit={units.length > 1 ? handleSwitchUnit : undefined}
     />
   );
 };
