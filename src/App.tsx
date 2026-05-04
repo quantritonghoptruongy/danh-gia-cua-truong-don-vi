@@ -169,7 +169,7 @@ async function apiSaveEvaluation(
     if (parts.length === 2) {
       const mm       = parseInt(parts[0], 10);
       const yyyy     = parseInt(parts[1], 10);
-      const lockDate = new Date(yyyy, mm, 3);
+      const lockDate = new Date(yyyy, mm, 5); // tháng mm+1, ngày 5
       lockDate.setHours(0, 0, 0, 0);
       if (new Date() >= lockDate) {
         throw new Error(`Đã khóa đánh giá! Kỳ ${payload.date} chỉ được chỉnh sửa trước ngày 03 tháng kế tiếp.`);
@@ -509,8 +509,9 @@ const MainApp = ({ user, accessToken, unitRecord, onLogout, onSwitchUnit }: Main
     if (activeTab === 'history') return true;
     const parts = selectedEmp.date.split('/');
     if (parts.length === 2) {
-      const lockDate = new Date(parseInt(parts[1], 10), parseInt(parts[0], 10), 3);
-      lockDate.setHours(0, 0, 0, 0);
+      const lockDate = new Date(parseInt(parts[1], 10), parseInt(parts[0], 10), 5);
+      //                                  năm ↑                  tháng ↑          ngày 5 ↑
+      lockDate.setHours(0, 0, 0, 0); // Đầu ngày mùng 3
       return new Date() >= lockDate;
     }
     return false;
